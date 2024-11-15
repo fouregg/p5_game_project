@@ -1,5 +1,7 @@
 let player;
 let floor;
+let countCanyons = 2;
+let canyons = [];
 
 function setup()
 {
@@ -11,8 +13,9 @@ function setup()
         width: 50,
         height: 50,
         speedGravity: -5,
-        color: color(0, 0, 0),
+        color: color(200, 150, 0),
         grounded: false,
+        dead: false,
         drawPlayer: function()
         {
             fill(this.color);
@@ -39,13 +42,53 @@ function setup()
         moveRight: function() { this.x += 4; },
         movement: function() 
         {
-            if ( this.grounded && keyIsDown(87))
-                this.jump();
-            if (keyIsDown(68))
-                this.moveRight();
-            if (keyIsDown(65))
-                this.moveLeft();
+            if (!this.dead)
+            {
+                if ( this.grounded && keyIsDown(87))
+                    this.jump();
+                if (keyIsDown(68))
+                    this.moveRight();
+                if (keyIsDown(65))
+                    this.moveLeft();
+            }
         },
+        deadAnimation: function()
+        {
+            if (this.dead)
+            {
+                if (this.y < height)
+                    this.y -= this.speedGravity;
+                else
+                {
+                    this.y = height - floor.height - this.width;
+                    this.x = 100;
+                    this.grounded = true;
+                    this.dead = false;
+                }
+            }
+        },
+        checkOutside: function() {
+            if (this.x < -10)
+                this.x = width - this.width + 10;
+            if (this.x > width + 10)
+                this.x = -10;
+        },
+        checkCanyon: function() {
+            for(let i = 0; i < canyons.length; i++)
+            {
+                if
+                (
+                    this.y + this.height >= height - floor.height && 
+                    this.x >= canyons[i].x && 
+                    this.x + this.width <= canyons[i].x + canyons[i].width
+                )
+                {
+                    this.grounded = false;   
+                    this.dead = true;
+                    this.deadAnimation();   
+                }
+            }
+        }
     };
 
     floor = {
@@ -56,14 +99,36 @@ function setup()
             fill(this.color);
             rect(0, height - this.height, width, this.height);
         },
+    }  
+
+    for(let i = 0; i < countCanyons; i++)
+    {
+        canyons.push
+        (
+            {
+                x: 250 + i * 400,
+                y: height-floor.height,
+                width: 100,
+                drawCanyon: function()
+                {
+                    fill(100);
+                    rect(this.x, this.y, this.width, floor.height);
+                }
+            }
+        );
     }
 }
+
 
 function draw()
 {
     background(255);
     floor.drawFloor();
+    for(let i = 0; i < canyons.length; i++)
+        canyons[i].drawCanyon();
     player.drawPlayer();
+    player.checkCanyon();
+    player.checkOutside();
     player.gravity(floor);
     player.movement();
 }
