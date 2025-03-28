@@ -1,7 +1,11 @@
 let player;
 let floor;
 let countCanyons = 2;
+let countPlatforms = 2;
 let canyons = [];
+let platforms = [];
+let onGrounded; 
+let basefloor = 200;
 
 function setup()
 {
@@ -21,20 +25,24 @@ function setup()
             fill(this.color);
             rect(this.x, this.y, this.width, this.height);
         },
-        gravity: function(floor)
-        {
+        gravity: function(platform)
+        {   
             if (this.speedGravity > -5)
                 this.speedGravity--;
-            if (this.y + this.height < height - floor.height)
+            if (this.y + this.height <= height - platform.y - platform.height)
+            {
                 this.y -= this.speedGravity;
+                console.log("check", height - platform.y - platform.height);
+            }
             else 
             {
+                this.y = (height - platform.y - platform.height) - this.height + 2;
                 this.grounded = true;
             }
         },
         jump: function()
         {
-            this.speedGravity = 15;
+            this.speedGravity = 20;
             this.y -= this.speedGravity;
             this.grounded = false;
         },
@@ -88,16 +96,40 @@ function setup()
                     this.deadAnimation();   
                 }
             }
+        },
+        checkPlatform: function()
+        {
+            let onPlatform = false;
+            for(let i = 0; i < countPlatforms; i++)
+            {
+                if
+                (
+                    this.y + this.height <= platforms[i].y  && 
+                    this.x + this.width >= platforms[i].x && 
+                    this.x  <= platforms[i].x + platforms[i].width
+                )
+                {
+                    
+                    floor.height = platforms[i].y + platforms[i].height + 2;
+                    console.log("Set floor", floor.height);
+                    onPlatform = true;
+                }
+            }
+            if(!onPlatform)
+                floor.height = basefloor;
         }
     };
 
     floor = {
+        y: 0,
         height: 200,
+        drawHeight: 200,
+        name:"floor",
         color: color(10, 100, 10),
         drawFloor: function()
         {
             fill(this.color);
-            rect(0, height - this.height, width, this.height);
+            rect(0, height - this.drawHeight, width, this.drawHeight);
         },
     }  
 
@@ -117,6 +149,26 @@ function setup()
             }
         );
     }
+
+    for(let i = 0; i < countPlatforms; i++)
+    {
+        platforms.push(
+            {
+                x: random(width),
+                name:"platform",
+                y: 400,
+                width: 80 + random(30),
+                height: 20,
+                color: color(100, 200, 100),
+                draw: function()
+                {
+                    fill(this.color);
+                    rect(this.x, height - this.height - this.y, this.width, this.height);
+                }
+            }
+        )
+    }
+    onGrounded = floor;
 }
 
 
@@ -126,9 +178,12 @@ function draw()
     floor.drawFloor();
     for(let i = 0; i < canyons.length; i++)
         canyons[i].drawCanyon();
+    for(let i = 0; i < platforms.length; i++)
+        platforms[i].draw();
     player.drawPlayer();
     player.checkCanyon();
     player.checkOutside();
+    player.checkPlatform();
     player.gravity(floor);
     player.movement();
 }
