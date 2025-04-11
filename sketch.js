@@ -1,11 +1,14 @@
 let player;
 let floor;
-let countCanyons = 2;
-let countPlatforms = 2;
+let countCanyons = 7;
+let countPlatforms = 0;
+let countCheckpoints = 3;
 let canyons = [];
 let platforms = [];
+let checkpoints = [];
 let onGrounded; 
 let basefloor = 200;
+let offsetMovingCamera = 150;
 
 function setup()
 {
@@ -20,6 +23,8 @@ function setup()
         color: color(200, 150, 0),
         grounded: false,
         dead: false,
+        speedRun: 4,
+        respawnPos: 150,
         drawPlayer: function()
         {
             fill(this.color);
@@ -27,17 +32,20 @@ function setup()
         },
         gravity: function(platform)
         {   
-            if (this.speedGravity > -5)
-                this.speedGravity--;
-            if (this.y + this.height <= height - platform.y - platform.height)
+            if (!this.dead)
             {
-                this.y -= this.speedGravity;
-                console.log("check", height - platform.y - platform.height);
-            }
-            else 
-            {
-                this.y = (height - platform.y - platform.height) - this.height + 2;
-                this.grounded = true;
+                if (this.speedGravity > -5)
+                    this.speedGravity--;
+                if (this.y + this.height <= height - platform.y - platform.height)
+                {
+                    this.y -= this.speedGravity;
+                    console.log("check", height - platform.y - platform.height);
+                }
+                else 
+                {
+                    this.y = (height - platform.y - platform.height) - this.height + 2;
+                    this.grounded = true;
+                }
             }
         },
         jump: function()
@@ -46,8 +54,8 @@ function setup()
             this.y -= this.speedGravity;
             this.grounded = false;
         },
-        moveLeft: function() { this.x -= 4; },
-        moveRight: function() { this.x += 4; },
+        moveLeft: function() { this.x -= this.speedRun; },
+        moveRight: function() { this.x += this.speedRun; },
         movement: function() 
         {
             if (!this.dead)
@@ -65,11 +73,13 @@ function setup()
             if (this.dead)
             {
                 if (this.y < height)
+                {
                     this.y -= this.speedGravity;
+                }
                 else
                 {
                     this.y = height - floor.height - this.width;
-                    this.x = 100;
+                    this.x = this.respawnPos;
                     this.grounded = true;
                     this.dead = false;
                 }
@@ -117,6 +127,19 @@ function setup()
             }
             if(!onPlatform)
                 floor.height = basefloor;
+        },
+        takeCheckpoint: function()
+        {
+            console.log(this.x);
+            for(let i = 0; i < checkpoints.length; i++)
+            {
+                if (this.x > checkpoints[i].x && this.x < checkpoints[i].x + checkpoints[i].width && checkpoints[i].y)
+                {
+                    console.log("TakeCheck");
+                    player.respawnPos = checkpoints[i].x - checkpoints[i].width/2;
+                }
+
+            }
         }
     };
 
@@ -154,7 +177,7 @@ function setup()
     {
         platforms.push(
             {
-                x: random(width),
+                x: i * 100 + random(width),
                 name:"platform",
                 y: 400,
                 width: 80 + random(30),
@@ -168,10 +191,53 @@ function setup()
             }
         )
     }
+
+    for (let i = 0; i < countCheckpoints; i++)
+    {
+        checkpoints.push(
+            {
+                x: (i + 1) * 500,
+                y: basefloor,
+                height:50,
+                width:20,
+                draw: function(){
+                    fill("#AF2010");
+                    rect(this.x, height - floor.height - this.height, this.width, this.height);
+                }
+            }
+        )
+    }
     onGrounded = floor;
 }
 
-
+function movingCamera(direction)
+{
+    for(let i = 0; i < canyons.length; i++)
+    {
+        if (!direction)
+            canyons[i].x += player.speedRun;
+        else
+            canyons[i].x -= player.speedRun;
+    }
+    for(let i = 0; i < platforms.length; i++)
+    {
+        if (!direction)
+            platforms[i].x += player.speedRun;
+        else
+            platforms[i].x -= player.speedRun;
+    }
+    for (let i = 0; i < checkpoints.length; i++)
+    {
+        if (!direction)
+            checkpoints[i].x += player.speedRun;
+        else
+            checkpoints[i].x -= player.speedRun;
+    }
+    if (!direction)
+        player.x += player.speedRun;
+    else
+        player.x -= player.speedRun;
+}
 function draw()
 {
     background(255);
@@ -180,10 +246,17 @@ function draw()
         canyons[i].drawCanyon();
     for(let i = 0; i < platforms.length; i++)
         platforms[i].draw();
+    for(let i = 0; i < checkpoints.length; i++)
+        checkpoints[i].draw();
+    if (player.x > width - 2 * offsetMovingCamera)
+        movingCamera(true);
+    else if (player.x < offsetMovingCamera)
+        movingCamera(false);
     player.drawPlayer();
     player.checkCanyon();
     player.checkOutside();
-    player.checkPlatform();
+    //player.checkPlatform();
+    player.takeCheckpoint();
     player.gravity(floor);
     player.movement();
 }
